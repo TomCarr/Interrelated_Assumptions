@@ -1,0 +1,82 @@
+n_taxa <- data.ntaxa()
+taxa <- data.taxa()
+n_branches <- n_taxa*2 - 2
+
+mvi = 0
+mni = 0
+
+###################
+
+Q := fnJC(4)
+
+###################
+
+rho <- topology.ntips()/301
+
+source(directories[1] + "/" + a + "_contains_calibrations_out.txt")
+if (contains_calibrations == 1){
+source(directories[1] + "/" + a + "_r_output_oldest_fossil_ages_out.txt")
+min_root = fossil_ages_oldest
+}
+
+if (contains_calibrations == 0){
+min_root = 0
+}
+
+root_time ~ dnUniform(min_root, 4)
+moves[++mvi] = mvScale(root_time, lambda = 1, weight = 3)
+moves[++mvi] = mvScale(root_time, lambda = 0.1, weight = 3)
+moves[++mvi] = mvScale(root_time, lambda = 0.01, weight = 3)
+
+speciation <- 3
+extinction <- 0
+
+timetree ~ dnBDP(lambda=speciation, mu=extinction, rho=rho, rootAge=root_time, samplingStrategy="uniform", condition="nTaxa", taxa=taxa)
+timetree.setValue(topology)
+
+if (contains_calibrations == 1){
+source(directories[1] + "/" + a + "_r_output_calibration_fossil_ages_out.txt")
+source(directories[1] + "/" + a + "_taxon_sets_out.txt")
+source(directories[1] + "/" + a + "_calibration_insertion_out.Rev")
+}
+
+moves[++mvi] = mvSubtreeScale(timetree, weight=5.0)
+moves[++mvi] = mvNodeTimeSlideUniform(timetree, weight=15.0)
+moves[++mvi] = mvTreeScale(tree=timetree, delta=1.0, weight=3.0)
+moves[++mvi] = mvTreeScale(tree=timetree, delta=0.1, weight=3.0)
+moves[++mvi] = mvTreeScale(tree=timetree, delta=0.01, weight=3.0)
+
+###################
+
+for(i in 1:n_branches){
+branch_rates[i] ~ dnLnorm(ln(0.05) - ((0.587405^2)/2), 0.587405)
+moves[++mvi] = mvScale(branch_rates[i], lambda = 1, weight=2.0)
+}
+
+moves[++mvi] = mvVectorScale(branch_rates,lambda=1.0,weight=2.0) 
+moves[++mvi] = mvVectorSingleElementScale(branch_rates,lambda=30.0,weight=1.0)
+
+###################
+
+seq ~ dnPhyloCTMC(timetree, Q=Q, branchRates=branch_rates, type="DNA")
+seq.clamp(data)
+
+###################
+
+mymodel = model(timetree)
+
+monitors[++mni] = mnModel(filename=directories[1] + "/" + a + "relaxed_node_calib.log", printgen = (10000 + 2000*scale_number[z])/2500, separator = TAB)
+monitors[++mni] = mnFile(filename=directories[1] + "/" + a + "relaxed_node_calib.trees", printgen = (10000 + 2000*scale_number[z])/2500, timetree)
+monitors[++mni] = mnScreen(printgen = (10000 + 2000*scale_number[z])/2500, root_time)
+
+mymcmc = mcmc(mymodel, monitors, moves, nruns=1)
+mymcmc.run(generations = 10000 + 2500*scale_number[z])
+
+treetrace = readTreeTrace(directories[1] + "/" + a + "relaxed_node_calib.trees", treetype="clock")
+mapTree(treetrace, directories[1] + "/" + a + "relaxed_node_calib.tre")
+
+clear(monitors, moves, n_taxa, taxa, n_branches, Q, rho, root_time, extinction, speciation, topology, timetree, branch_rates, seq)
+
+if (contains_calibrations == 1){
+clear(calibration)
+}

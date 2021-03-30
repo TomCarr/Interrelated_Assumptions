@@ -1,0 +1,54 @@
+n_taxa <- data.ntaxa()
+taxa <- data.taxa()
+n_branches <- n_taxa*2 - 3
+
+mvi = 0
+mni = 0
+
+###################
+
+er_prior <- v(1,1,1,1,1,1)
+er ~ dnDirichlet(er_prior)
+moves[++mvi] = mvDirichletSimplex(er, weight=3.0)
+moves[++mvi] = mvBetaSimplex(er, weight=3.0)
+
+pi_prior <- v(1,1,1,1)
+pi ~ dnDirichlet(pi_prior)
+moves[++mvi] = mvDirichletSimplex(pi, weight=3.0)
+moves[++mvi] = mvBetaSimplex(pi, weight=3.0)
+Q := fnGTR(er,pi)
+
+###################
+
+topology ~ dnUniformTopology(taxa, outgroup=outgroup[a])
+
+moves[++mvi] = mvNNI(topology, weight=n_taxa)
+moves[++mvi] = mvSPR(topology, weight=n_taxa/10.0)
+
+for (i in 1:n_branches){
+br_lens[i] ~ dnExponential(10.0)
+moves[++mvi] = mvScale(br_lens[i])
+}
+
+psi := treeAssembly(topology, br_lens)
+
+###################
+
+seq ~ dnPhyloCTMC(tree=psi, Q=Q, type="DNA")
+seq.clamp(data)
+
+###################
+
+mymodel = model(Q)
+
+monitors[++mni] = mnModel(filename=directories[z] + "/" + a + "gtr.log", printgen=(3000*scale_number[z])/2500, separator = TAB)
+monitors[++mni] = mnFile(filename=directories[z] + "/" + a + "gtr_output.trees", printgen=(3000*scale_number[z])/2500, psi)
+monitors[++mni] = mnScreen(printgen=(3000*scale_number[z])/2500)
+
+mymcmc = mcmc(mymodel, monitors, moves, nruns=1)
+mymcmc.run(generations=3000*scale_number[z])
+
+treetrace = readTreeTrace(directories[z] + "/" + a + "gtr_output.trees")
+mapTree(treetrace, directories[z] + "/" + a + "gtr_output.tre")
+
+clear(psi, topology, br_lens, moves, monitors)

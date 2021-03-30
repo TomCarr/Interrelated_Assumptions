@@ -1,0 +1,83 @@
+
+n_taxa <- data.ntaxa()
+taxa <- data.taxa()
+n_branches <- n_taxa*2 - 2
+
+mvi = 0
+mni = 0
+
+#############################################################################################################
+
+er_prior <- v(1,1,1,1,1,1)
+er ~ dnDirichlet(er_prior)
+moves[++mvi] = mvDirichletSimplex(er, weight=3.0, tune=true)
+moves[++mvi] = mvBetaSimplex(er, weight=3.0, tune=true)
+
+pi_prior <- v(1,1,1,1)
+pi ~ dnDirichlet(pi_prior)
+moves[++mvi] = mvDirichletSimplex(pi, weight=3.0, tune=true)
+moves[++mvi] = mvBetaSimplex(pi, weight=3.0, tune=true)
+Q := fnGTR(er,pi)
+
+alpha_prior_mean <- ln(5.0)
+alpha_prior_sd <- 0.587405
+alpha ~ dnLognormal( alpha_prior_mean, alpha_prior_sd )
+gamma_rates := fnDiscretizeGamma( alpha, alpha, 4 )
+moves[++mvi] = mvScale(alpha, weight=3.0, tune=true)
+
+pinvar ~ dnBeta(1,1)
+moves[++mvi] = mvSlide(pinvar, weight=5.0, tune=true)
+moves[++mvi] = mvScale(pinvar, weight=5.0, tune=true)
+
+#############################################################################################################
+
+root_time <- 16.2475
+
+speciation ~ dnExponential(10)
+moves[++mvi] = mvScale(speciation,lambda=1,weight=3.0, tune=true)
+moves[++mvi] = mvScale(speciation,lambda=0.1,weight=3.0, tune=true)
+moves[++mvi] = mvScale(speciation,lambda=0.01,weight=3.0, tune=true)
+
+relativeExtinction ~ dnBeta(1,1)
+moves[++mvi] = mvScale(relativeExtinction, lambda = 1, weight=3.0, tune=true)
+moves[++mvi] = mvScale(relativeExtinction, lambda = 0.1, weight=3.0, tune=true)
+moves[++mvi] = mvScale(relativeExtinction, lambda = 0.01, weight=3.0, tune=true)
+
+extinction := speciation * relativeExtinction
+
+timetree ~ dnBDP(lambda=speciation, mu=extinction, rho=rho, rootAge=root_time, samplingStrategy="uniform", condition="nTaxa", taxa=taxa)
+timetree.setValue(start_tree)
+
+moves[++mvi] = mvSubtreeScale(timetree, weight=5.0)
+moves[++mvi] = mvNodeTimeSlideUniform(timetree, weight=15.0)
+moves[++mvi] = mvTreeNodeAgeSlide(timetree, weight=40.0)
+moves[++mvi] = mvTreeScale(tree=timetree, delta=1.0, weight=3.0)
+moves[++mvi] = mvTreeScale(tree=timetree, delta=0.1, weight=3.0)
+moves[++mvi] = mvTreeScale(tree=timetree, delta=0.01, weight=3.0)
+
+#############################################################################################################
+
+clock_mean ~ dnUnif(1E-6, 10)
+moves[++mvi] = mvScale(clock_mean, lambda = 1, weight = 3, tune=true)
+moves[++mvi] = mvScale(clock_mean, lambda = 0.1, weight = 3, tune=true)
+moves[++mvi] = mvScale(clock_mean, lambda = 0.01, weight = 3, tune=true)
+
+
+#############################################################################################################
+
+seq ~ dnPhyloCTMC(tree=timetree, Q=Q, siteRates=gamma_rates, pInv=pinvar, branchRates=clock_mean, type="DNA")
+seq.clamp(data)
+
+#############################################################################################################
+
+mymodel = model(timetree)
+
+monitors[++mni] = mnModel(filename="ONE_RESULTS_" + taxon_number + "_TAXON/" + z + sequence_size + "_strict.log", printgen=10, separator = TAB)
+monitors[++mni] = mnFile(filename="ONE_RESULTS_" + taxon_number + "_TAXON/" + z + sequence_size + "_strict.trees", printgen=10, timetree)
+monitors[++mni] = mnExtNewick(filename="ONE_RESULTS_" + taxon_number + "_TAXON/" + z + sequence_size + "_strict_annotated.trees", isNodeParameter = FALSE, tree=timetree, clock_mean, printgen=10)
+
+monitors[++mni] = mnScreen(printgen=10)
+
+mymcmc = mcmc(mymodel, monitors, moves, nruns=2)
+mymcmc.burnin(generations = 2000, tuningInterval = 500)
+mymcmc.run(generations=30000*scale)

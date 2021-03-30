@@ -1,0 +1,34 @@
+taxa <- observed_tree.taxa()
+root <- observed_tree.rootAge()
+tree_length <- observed_tree.treeLength()
+
+mvi = 0
+mni = 0
+
+NUM_TOTAL_SPECIES = 301
+rho <- observed_tree.ntips()/NUM_TOTAL_SPECIES
+
+###
+
+speciation ~ dnLnorm(ln(3) - ((1.17481^2)/2), 1.17481)
+moves[++mvi] = mvScale(speciation,lambda=1.0,weight=3) 
+moves[++mvi] = mvScale(speciation,lambda=0.1,weight=3)
+moves[++mvi] = mvScale(speciation,lambda=0.01,weight=3)
+
+extinction <- 0
+
+timetree ~ dnBDP(lambda=speciation, mu=extinction, rho=rho, rootAge=root, samplingStrategy="uniform", condition="survival", taxa=taxa)
+timetree.clamp(observed_tree)
+
+###
+
+mymodel = model(timetree)
+
+monitors[++mni] = mnModel(filename = "1/" + z + "data_diversification.log", printgen=10, separator = TAB)
+monitors[++mni] = mnScreen(printgen=500)
+
+mymcmc = mcmc(mymodel, monitors, moves, nruns=1)
+mymcmc.run(generations=20000)
+
+clear(taxa, root, tree_length, moves, monitors, rho, speciation, extinction, timetree)
+

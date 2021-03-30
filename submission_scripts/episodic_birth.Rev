@@ -1,0 +1,64 @@
+1.17481
+taxa <- observed_tree.taxa()
+root <- observed_tree.rootAge()
+tree_length <- observed_tree.treeLength()
+
+mvi = 0
+mni = 0
+
+NUM_INTERVALS = 2
+NUM_TOTAL_SPECIES = 301
+rho <- observed_tree.ntips()/NUM_TOTAL_SPECIES
+
+interval_times[1] <- root
+interval_times[2] ~ dnUniform(0, root)
+moves[++mvi] = mvScale(interval_times[2], lambda = 1, weight = 3)
+moves[++mvi] = mvScale(interval_times[2], lambda = 0.1, weight = 3)
+moves[++mvi] = mvScale(interval_times[2], lambda = 0.01, weight = 3)
+
+###
+
+speciation_mean ~ dnLnorm(ln(12.5917) - ((1.17481^2)/2), 1.17481)
+moves[++mvi] = mvScale(speciation_mean,lambda=1.0,weight=3) 
+moves[++mvi] = mvScale(speciation_mean,lambda=0.1,weight=3)
+moves[++mvi] = mvScale(speciation_mean,lambda=0.01,weight=3)
+
+for (i in 1:NUM_INTERVALS){
+speciation[i] ~ dnLognormal(ln(speciation_mean) - ((1.17481^2)/2), 1.17481)
+moves[++mvi] = mvScale(speciation[i],lambda=1,weight=3.0)
+moves[++mvi] = mvScale(speciation[i],lambda=0.1,weight=3.0)
+moves[++mvi] = mvScale(speciation[i],lambda=0.01,weight=3.0)
+}
+
+extinction <- rep(0, NUM_INTERVALS)
+
+###
+
+timetree ~ dnEpisodicBirthDeath(rootAge=root,
+lambdaRates=speciation, 
+lambdaTimes=interval_times, 
+muRates=extinction, 
+muTimes=interval_times, 
+rho=rho, 
+samplingStrategy="uniform", 
+condition="survival", 
+taxa=taxa)
+timetree.clamp(observed_tree)
+
+###
+
+mymodel = model(speciation)
+
+###
+
+monitors[++mni] = mnModel(filename="5/1data_diversification.log",printgen=400, separator = TAB)
+monitors[++mni] = mnFile(filename="5/1data_diversification_times.log",printgen=400, separator = TAB, interval_times)
+monitors[++mni] = mnFile(filename="5/1data_episodic_birth_death_out.trees", printgen=400, timetree)
+monitors[++mni] = mnScreen(printgen=400)
+
+###
+
+mymcmc = mcmc(mymodel, monitors, moves, nruns=1)
+mymcmc.run(generations=800000)
+
+clear(taxa, root, tree_length, moves, monitors, rho, interval_times, speciation, speciation_mean, extinction, timetree)

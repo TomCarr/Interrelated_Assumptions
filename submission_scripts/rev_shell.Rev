@@ -1,0 +1,21 @@
+
+
+#####
+
+for(z in 1:5){
+for(a in 1:dataset_number[z]){
+data <- readDiscreteCharacterData(directories[z] + "/" + a + ".nexus")
+topology <- readTrees(directories[z] + "/" + a + ".tre")[1]
+source("simple_clock_script.Rev")
+source("simple_clock_scrit_no_md.Rev")
+}
+}
+
+for (a in 1:dataset_number[5]){
+data <- readDiscreteCharacterData(directories[5] + "/" + a + ".nexus")
+topology <- readTrees(directories[5] + "/" + a + ".tre")[1]
+source("node_calibrations.Rev")
+}
+
+
+

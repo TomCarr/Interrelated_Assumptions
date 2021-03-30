@@ -1,0 +1,46 @@
+n_taxa <- data.ntaxa()
+taxa <- data.taxa()
+n_branches <- n_taxa*2 - 3
+
+mvi = 0
+mni = 0
+
+###################
+
+Q := fnJC(4)
+
+###################
+
+topology ~ dnUniformTopology(taxa, outgroup=outgroup[a])
+
+moves[++mvi] = mvNNI(topology, weight=n_taxa)
+moves[++mvi] = mvSPR(topology, weight=n_taxa/10.0)
+
+for (i in 1:n_branches){
+br_lens[i] ~ dnExponential(10.0)
+moves[++mvi] = mvScale(br_lens[i])
+}
+
+psi := treeAssembly(topology, br_lens)
+
+###################
+
+seq ~ dnPhyloCTMC(tree=psi, Q=Q, type="DNA")
+#seq.clamp(data)
+
+###################
+
+mymodel = model(Q)
+
+monitors[++mni] = mnModel(filename=directories[z] + "/" + a + "nd_jc.log", printgen=(3000*scale_number[z])/2500, separator = TAB)
+monitors[++mni] = mnFile(filename=directories[z] + "/" + a + "nd_jc_output.trees", printgen=(3000*scale_number[z])/2500, psi)
+monitors[++mni] = mnScreen(printgen=(3000*scale_number[z])/2500)
+
+mymcmc = mcmc(mymodel, monitors, moves, nruns=1)
+mymcmc.run(generations=3000*scale_number[z])
+
+treetrace = readTreeTrace(directories[z] + "/" + a + "nd_jc_output.trees")
+mapTree(treetrace, directories[z] + "/" + a + "nd_jc_output.tre")
+
+clear(psi, topology, br_lens, moves, monitors)
+
