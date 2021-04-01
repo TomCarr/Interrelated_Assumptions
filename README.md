@@ -4,3 +4,5 @@ This repository relates to the article "The implications of interrelated assumpt
 "submission_scripts" were used to perform the simulations in "The implications of interrelated assumptions on estimates of divergence times and rates of diversification". 
 
 "simulation_scripts" will provide a series of user firendly functions for performing simulations.
+
+"time_analyses" will provide functions for performing divergence time analyses that account for methodological assumptions
