@@ -1,0 +1,6 @@
+n_three_taxon_trees <- 1
+ 
+for (z in 1:n_three_taxon_trees){
+source("relaxed.Rev")
+}
+
