@@ -30,7 +30,7 @@ number_three_taxon_trees: number of three taxon trees estimated\
 species_tree: the species tree\
 outputs_dir: output directory of the estimated three taxon tree
 
-# rev_bayes scripts
+# RevBayes scripts
 Example scripts for estimating divergence times across many three taxon trees
 
 
