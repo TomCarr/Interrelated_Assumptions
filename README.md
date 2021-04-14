@@ -5,4 +5,4 @@ This repository relates to the article "The implications of interrelated assumpt
 
 "simulation_scripts" will provide a series of user firendly functions for performing simulations.
 
-"time_analyses" will provide functions for performing divergence time analyses that account for methodological assumptions
+"three_taxon_time_estimates" contains pipeline for estimating divergence times in large phylogenies with three taxon trees. 
