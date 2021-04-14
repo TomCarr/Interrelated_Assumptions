@@ -1,6 +1,7 @@
 
 
-# BasicTimeEstimates
+# BasicTimeEstimates 
+(more detailed instructions to be added shortly)
 
 This package enables node age estimation in phylogenies using a series of three taxon phylogenies. The three taxon phylogenies are sampled from the main phylogeny, such that every node in the main phylogeny is sampled.
 The purpose of these analyses is to enable estimation of divergence times in a manner that is not influenced by the tree prior, which is often biologically unrealistic.
@@ -28,4 +29,11 @@ CompileAgeEstimates(n_three_taxon_trees, species_tree, outputs_dir)
 number_three_taxon_trees: number of three taxon trees estimated\
 species_tree: the species tree\
 outputs_dir: output directory of the estimated three taxon tree
+
+# rev_bayes scripts
+Example scripts for estimating divergence times across many three taxon trees
+
+
+
+
 
